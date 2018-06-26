@@ -74,6 +74,70 @@ $SegmentClass.addMethods( @{
 # --------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------------------------
 
+# EXT TOKENS COLLECTION
+
+$ExtTokensCollectionClass = CreateSimpleClass @("currentLevel", "extTokens")
+
+$ExtTokensCollectionClass.addMethods( @{ 
+
+    init = {
+        param([string] $argumentsStr)
+
+        $this.currentLevel = 0
+
+        $tokens = [System.Management.Automation.PSParser]::Tokenize($argumentsStr, [ref] $null)
+
+        If ($tokens.Count -gt 0) 
+        {
+            $this.extTokens = @( 0..($tokens.Count-1) | ForEach-Object { $this.createExtendedToken($tokens[$_], $_) } )
+        } 
+        Else 
+        {
+            $this.extTokens = @()
+        }
+    }
+
+    createExtendedToken = 
+    {
+        param($token, $index)
+
+        $currentLevel = $this.currentLevel
+
+        If ($token.Type -eq [System.Management.Automation.PSTokenType]::Operator) {
+            Switch ($token.Content) {
+                "[" {
+                    New "ExtendedToken" { $self.init($token, $index, $currentLevel + 1) }
+                    $this.currentLevel += 1
+                }
+                "]" {
+                    New "ExtendedToken" { $self.init($token, $index, $currentLevel) }
+                    $this.currentLevel -= 1
+                }
+                default {
+                    New "ExtendedToken" { $self.init($token, $index, $currentLevel) }
+                }
+            }
+        } 
+        ElseIf ($token.Type -eq [System.Management.Automation.PSTokenType]::GroupStart) 
+        {
+            New "ExtendedToken" { $self.init($token, $index, $currentLevel + 1) }
+            $this.currentLevel += 1
+        }
+        ElseIf ($token.Type -eq [System.Management.Automation.PSTokenType]::GroupEnd) 
+        {
+            New "ExtendedToken" { $self.init($token, $index, $currentLevel) }
+            $this.currentLevel -= 1
+        }
+        Else {
+            New "ExtendedToken" { $self.init($token, $index, $currentLevel) }
+        }
+    }
+
+} )
+
+# --------------------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------------------------
+
 # ARGUMENTS
 
 $ArgumentsClass = CreateSimpleClass @("argumentsStr", "variables")
@@ -86,9 +150,15 @@ $ArgumentsClass.addMethods( @{
             
         $this.argumentsStr = $argumentsStr
     
-        $extTokensColl = $this.createExtendedTokens()
-        $extTokens = $extTokensColl.array
-    
+        $extTokensColl = New "ExtTokensCollection" { $self.init($argumentsStr) }
+        $extTokens = $extTokensColl.extTokens
+
+        # Check current level
+        If ($extTokensColl.currentLevel -ne 0) 
+        {
+            $this.throwException("Syntax error: unmatched brackets")
+        }
+
         If ($extTokens.Count -gt 0) 
         {
             $segments = $this.createSegments($extTokens)
@@ -104,67 +174,6 @@ $ArgumentsClass.addMethods( @{
         } Else {
             [string[]] $this.variables = @()
         }
-    }
-
-    # -------------------------------------------------------------------------------------------------------
-
-    # Return array of ExtendedToken objects
-    # The method uses $this.argumentsStr variable
-    createExtendedTokens = 
-    {
-        $tokens = [System.Management.Automation.PSParser]::Tokenize($this.argumentsStr, [ref] $null)
-
-        $currentLevel_ = 0
-        $currentLevel = [ref] $currentLevel_
-        
-        If ($tokens.Count -gt 0) 
-        {
-            $rangeColl = New_ "Collection" { param($_) $_.init( 0..($tokens.Count-1) ) }
-            $extTokensColl = $rangeColl.map( 
-            {
-                param($index)
-
-                $token = $tokens[$index]
-                If ($token.Type -eq [System.Management.Automation.PSTokenType]::Operator) {
-                    Switch ($token.Content) {
-                        "[" {
-                            New_ "ExtendedToken" { param($_) $_.init($token, $index, $currentLevel.value + 1) }
-                            ++ $currentLevel.value
-                        }
-                        "]" {
-                            New_ "ExtendedToken" { param($_) $_.init($token, $index, $currentLevel.value) }
-                            -- $currentLevel.value
-                        }
-                        default {
-                            New_ "ExtendedToken" { param($_) $_.init($token, $index, $currentLevel.value) }
-                        }
-                    }
-                } 
-                ElseIf ($token.Type -eq [System.Management.Automation.PSTokenType]::GroupStart) 
-                {
-                    New_ "ExtendedToken" { param($_) $_.init($token, $index, $currentLevel.value + 1) }
-                    ++ $currentLevel.value
-                }
-                ElseIf ($token.Type -eq [System.Management.Automation.PSTokenType]::GroupEnd) 
-                {
-                    New_ "ExtendedToken" { param($_) $_.init($token, $index, $currentLevel.value) }
-                    -- $currentLevel.value
-                }
-                Else {
-                    New_ "ExtendedToken" { param($_) $_.init($token, $index, $currentLevel.value) }
-                }
-            }.GetNewClosure())
-        } Else {
-            $extTokensColl = New_ "Collection" { param($_) $_.init( @() ) }
-        }
-        
-        # Check current level
-        If ($currentLevel_ -ne 0) {
-            $this.throwException("Syntax error: unmatched brackets")
-        }
-
-        $extTokensColl
-    
     }
 
     # -------------------------------------------------------------------------------------------------------
