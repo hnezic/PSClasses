@@ -1,5 +1,5 @@
-$classGeneratorFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$classGeneratorFolder\Arguments.ps1"
+. "$(Split-Path -Parent $MyInvocation.MyCommand.Path)\Arguments.ps1"
+. "$(Split-Path -Parent $MyInvocation.MyCommand.Path)\TemplateEngine.ps1"
 
 # CLASS
 # The class which represents Class objects
@@ -118,8 +118,6 @@ function CreateClass {
  
 function ClassMethods
 {
-    . "$classGeneratorFolder\TemplateEngine.ps1"
-
     $methods = Methods_Start
 
     # -------------------------------------------------------------------------------------------------------
@@ -199,7 +197,7 @@ function ClassMethods
 
         CreateExtDict
     
-    }.GetNewClosure()
+    }
 
     # -------------------------------------------------------------------------------------------------------
 
