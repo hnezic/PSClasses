@@ -6,6 +6,45 @@ $TemplateEngineModule = CreateObject @()
 
 AddMethodsToObject $TemplateEngineModule @{
 
+    renderTemplate = {
+        param([string] $template, [Hashtable] $arguments)
+
+        $lineEndings = "`n"
+
+        $lines = $this.getLines($template)
+
+        While ($this.containsKeyword($lines, '@ForEach'))
+        {
+            $lines = $this.replaceForEach($lines, $arguments)
+        }
+
+        While ($this.containsKeyword($lines, '@If'))
+        {
+            $lines = $this.replaceIf($lines, $arguments)
+        }
+
+        $rendered = $lines -Join $lineEndings
+        
+        $this.replaceArguments($rendered, $arguments)
+    }
+
+    trimLines = {
+        param($str)
+
+        $lineEndings = "`n"
+
+        $lines = $this.getLines($str) | ForEach-Object { $_.Trim() }
+        $lines -Join $lineEndings
+    }
+
+    getLines = {
+        param([string] $str)
+
+        $lineEndings = "`n"
+        
+        $str.Replace("`r", "").Split($lineEndings)
+    }
+
     containsKeyword = {   
         param([string[]] $lines, [string] $keyword)
 
@@ -221,36 +260,5 @@ AddMethodsToObject $TemplateEngineModule @{
         }
 
         $rendered
-    }
-
-    renderTemplate = {
-        param([string] $template, [Hashtable] $arguments)
-
-        $lineEnding = "`n"
-
-        $lines = $template.Split($lineEnding)
-
-        While ($this.containsKeyword($lines, '@ForEach'))
-        {
-            $lines = $this.replaceForEach($lines, $arguments)
-        }
-
-        While ($this.containsKeyword($lines, '@If'))
-        {
-            $lines = $this.replaceIf($lines, $arguments)
-        }
-
-        $rendered = $lines -Join $lineEnding
-        
-        $this.replaceArguments($rendered, $arguments)
-    }
-
-    trimLines = {
-        param($str)
-
-        $lineEnding = "`n"        
-
-        $lines = $str -Split $lineEnding | ForEach-Object { $_.Trim() }
-        $lines -Join $lineEnding
     }
 }
