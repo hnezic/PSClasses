@@ -1,6 +1,7 @@
 If (-not $ClassGenFunctions_Included)
 {
     $ClassGenFunctions_Included = $true
+    
     function New {
 
         param([string] $className, [ScriptBlock] $constructor)
