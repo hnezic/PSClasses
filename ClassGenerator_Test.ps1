@@ -274,7 +274,7 @@ Describe "Person class hierarchy" {
         
         # Person
         
-        CreateClass "Person" $null '$name, $age, $male' @{
+        CreateClass "Person" $null '[string] $name, [int] $age, [boolean] $male' @{
             
             reportAge = {
                 "My age is $($this.age)"
