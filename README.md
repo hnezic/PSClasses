@@ -11,11 +11,16 @@ Classes with inheritance for PowerShell versions earlier than 5.0
 - A **variable** holding the class object is automatically created.
 - The variable name is formed like this: `$<className>Class`.
 
-The CreateClass function accepts 4 arguments: 
-- class name
-- superclass
-- instance variables
-- methods
+The CreateClass function accepts following **arguments**: 
+
+Argument | Alias | Mandatory
+-------- | ----- | ---------
+Class name | -name | yes
+Superclass | -extends | no
+Instance variables | -variables | no
+Methods | -methods | no
+
+#### Example
 
 ```powershell
 CreateClass "Person" $null '[string] $name, [int] $age, [boolean] $male' @{
@@ -30,10 +35,23 @@ CreateClass "Person" $null '[string] $name, [int] $age, [boolean] $male' @{
 }
 ```
 
+This call creates the class object **$PersonClass**:
+
+```powershell
+> $PersonClass
+
+className         : Person
+super             :
+allVariablesStr   : [string] $name, [int] $age, [boolean] $male
+variables         : {name, age, male}
+...
+```
+
 ### Instance variables
 
- - Instance variables are specified as a **string** containing a comma-separated variable list along with optional type specifiers.
+ - Instance variables are specified as a **string** containing a comma-separated variable list along with **optional** type specifiers.
 - The string containing instance variables is **parsed** and the variable names extracted.
+- The string is also used to create parameters of the generated constructor named **init**. 
 
 ### Methods
 
