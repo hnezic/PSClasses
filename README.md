@@ -17,6 +17,17 @@ The CreateClass function accepts 4 arguments:
 - instance variables
 - methods
 
+CreateClass "Person" $null '[string] $name, [int] $age, [boolean] $male' @{
+    
+    reportAge = {
+        "My age is $($this.age)"
+    }
+    
+    reportName = {
+        "My name is $($this.name)"
+    }
+}
+
 ### Instance variables
 
  - Instance variables are specified as a **string** containing a comma-separated variable list along with optional type specifiers.
