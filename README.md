@@ -9,16 +9,16 @@ Classes with inheritance for PowerShell versions earlier than 5.0
 - A class is created by calling **CreateClass** function.
 - The created class is represented by a **class object**.
 - A **variable** holding the class object is automatically created.
-- The variable name is formed like this: `$<className>Class`.
+- The variable **name** is formed like this: **`$<className>Class`**.
 
 The CreateClass function accepts following **arguments**: 
 
 Argument | Alias | Mandatory
 -------- | ----- | ---------
-Class name | -name | yes
-Superclass | -extends | no
-Instance variables | -variables | no
-Methods | -methods | no
+class name | -name | yes
+superclass | -extends | no
+instance variables | -variables | no
+methods | -methods | no
 
 #### Example
 
@@ -49,18 +49,48 @@ variables         : {name, age, male}
 
 ### Instance variables
 
- - Instance variables are specified as a **string** containing a comma-separated variable list along with **optional** type specifiers.
-- The string containing instance variables is **parsed** and the variable names extracted.
-- The string is also used to create parameters of the generated constructor named **init**. 
+- Instance variables are specified as a **string** containing a comma-separated variable list along with **optional** type specifiers.
+- The string containing instance variables is also used for parameters of the **generated constructor** named **init**. 
+- The string is **parsed** and the variable names extracted.
+- Syntax is the same as syntax of function parameters or script block parameters.
 
 ### Methods
 
-- Methods are written as a **dictionary** of *(name, script block)* pairs.
+- The methods are written as a **dictionary** of *(name, script block)* pairs.
 - The methods dictionary can be an unordered hashtable or ordered dictionary.
 
-#### Overriding
+#### Overriding methods
 
-- A class can **override** superclass methods, but each overridden methods is still available in following form: **<className>_<methodName>**.
+- A class can **override** superclass methods, but each overridden methods is still available in following form: **`<className>_<methodName>`**.
+
+##### Example
+
+```powershell
+CreateClass "IntCounter" $null '[int] $value' @{
+    
+    increment = {
+        $this.value += 1
+    }
+
+    reset = {
+        $this.value = 0
+    }
+}
+
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+
+    # Override superclass method
+    increment = {
+        If ($this.value -eq $this.modulus - 1) {
+            # Call inherited method
+            $this.reset()
+        } Else {
+            # Call superclass version
+            $this.IntCounter_increment()
+        }
+    }
+}
+```
 
 ### Constructors
 
