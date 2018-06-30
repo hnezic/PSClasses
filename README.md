@@ -17,6 +17,7 @@ The CreateClass function accepts 4 arguments:
 - instance variables
 - methods
 
+```powershell
 CreateClass "Person" $null '[string] $name, [int] $age, [boolean] $male' @{
     
     reportAge = {
@@ -27,6 +28,7 @@ CreateClass "Person" $null '[string] $name, [int] $age, [boolean] $male' @{
         "My name is $($this.name)"
     }
 }
+```
 
 ### Instance variables
 
