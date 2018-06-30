@@ -9,7 +9,7 @@ Classes with inheritance for PowerShell versions earlier than 5.0
 - A class is created by calling **CreateClass** function.
 - The created class is represented by a **class object**.
 - A **variable** holding the class object is automatically created.
-- The variable **name** is formed like this: **`$<className>Class`**.
+- The **variable name** is formed like this: **`$<className>Class`**.
 
 The CreateClass function accepts following **arguments**: 
 
@@ -61,9 +61,10 @@ variables         : {name, age, male}
 
 #### Overriding methods
 
-- A class can **override** superclass methods, but each overridden methods is still available in following form: **`<className>_<methodName>`**.
+- A derived class can **override** superclass methods. 
+- Each overridden method is available in following form: **`<className>_<methodName>`**.
 
-##### Example
+#### Example
 
 ```powershell
 CreateClass "IntCounter" $null '[int] $value' @{
@@ -92,9 +93,15 @@ CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
 }
 ```
 
+ModularCounter class overrides **increment** method. The ModularCounter **increment** method calls the superclass version:
+
+```powershell
+$this.IntCounter_increment()
+```
+
 ### Constructors
 
-- Constructors are special **methods** starting with **init**.
+- Constructors are special **methods** whose names start with **init**.
 - A class can contain **multiple** constructors.
 
 #### Generated constructor
