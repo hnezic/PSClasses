@@ -1,8 +1,20 @@
 # PSClasses
 
-Classes with inheritance for PowerShell versions earlier than 5.0
-
 ## Overview
+
+The PSClasses project provides classes with inheritance to PowerShell versions earlier than 5.0.
+
+PSClasses include important features of object-oriented languages, like following:
+- class inheritance
+- overriding methods
+- ability to call overridden superclass methods
+- multiple constructors
+- ability to call other constructors of the same class
+- ability to call superclass constructors
+
+PSClasses also contain an uncommon feature: implicit generation of the constructor which accepts arguments corresponding to all instance variables. This feature resembles *case classes* in Scala or *data classes* in Kotlin.
+
+## Usage
 
 ### Class creation
 
@@ -53,6 +65,18 @@ variables         : {name, age, male}
 - The string containing instance variables is also used for parameters of the **generated constructor** named **init**. 
 - The string is **parsed** and the variable names extracted.
 - Syntax is the same as syntax of function parameters or script block parameters.
+
+#### Examples
+
+```powershell
+'[string] $name, [int] $age, [boolean] $male'
+
+'[PSCustomObject] $successor, [string] $topic'
+
+'$drive, $certSubject, $certAccount'
+
+''
+```
 
 ### Methods
 
@@ -271,7 +295,7 @@ The function New expects that the supplied script block contains a constructor c
 The way of object creation with function **New** will **not** work correctly within **closures**. For example:
 
 ```powershell
-{
+$script = {
     ...
     # This will not work
     $point = New "Point" { $self.init(-10, -50) }
@@ -291,11 +315,11 @@ $point1 = New_ "Point" { param($self) $self.init(30, 50) }
 $point2 = New_ "Point" { param($_) $_.init(25, 35) }
 ```
 
-The way of object creation with function **New_** will work correctly within **closures**.
+The way of object creation with function **New_** will **work** correctly within **closures**.
 
 #### Using class object methods
 
-Instead of using functions **New** or **New_** we can use class object methods **new** or **new_**:
+Instead of calling functions **New** or **New_** we can create objects by applying methods **new** or **new_** to the class object:
 
 ```powershell
 $point1 = $PointClass.new( { $self.init(10, 20) } )
