@@ -226,7 +226,79 @@ $this.HelpHandler_init($parent, $topic)
 
 ### Object creation
 
-- New objects are created by calling function **New** (or alternatively **New_**). 
-- The functions accepts two arguments:
+- There are several ways to create new objects.
+- The simplest way is to call function **New** (or alternatively **New_**).
+- An alternative way is to call method **new** (or alternatively **new_** on the class object)
+
+We'll illustrate creation of objects on the following simple class:
+
+```powershell
+CreateClass "Point" $null '[double] $x, [double] $y' @{
+
+    translate = {
+        param([double] $x, [double] $y)
+
+        $this.x += $x
+        $this.y += $y
+    }
+
+    scale = {
+        param([double] $factor)
+
+        $this.x *= $factor
+        $this.y *= $factor
+    }
+}
+```
+
+#### New
+
+- The function New accepts two arguments:
   - class name 
-  - script block containing a constructor call.
+  - script block containing a constructor call
+
+For example:
+
+```powershell
+$point = New "Point" { $self.init(10, 20) }
+```
+
+Here we supply a **parameterless** script block. 
+When function **New** is executed it will create the **$self** object and then the call `$self.init(10, 20)` will be executed on this object.
+
+The function New expects that the supplied script block contains a constructor call on the object **$self**. If we use any other object it will not work.
+
+The way of object creation with function **New** will **not** work correctly within **closures**. For example:
+
+```powershell
+{
+    ...
+    # This will not work
+    $point = New "Point" { $self.init(-10, -50) }
+    ...
+}.GetNewClosure()
+```
+
+#### New_
+
+The function New_ is similar to New but it expects a script block with a **single parameter** representing the object being created and initialized. The parameter name is irrelevant.
+
+For example:
+
+```powershell
+$point1 = New_ "Point" { param($self) $self.init(30, 50) }
+
+$point2 = New_ "Point" { param($_) $_.init(25, 35) }
+```
+
+The way of object creation with function **New_** will work correctly within **closures**.
+
+#### Using class object methods
+
+Instead of using functions **New** or **New_** we can use class object methods **new** or **new_**:
+
+```powershell
+$point1 = $PointClass.new( { $self.init(10, 20) } )
+
+$point2 = $PointClass.new_( { param($_) $_.init(5, 8) } )
+```
