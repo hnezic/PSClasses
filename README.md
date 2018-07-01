@@ -142,7 +142,7 @@ John Smith  23 True
 
 #### Example 2
 
-Let's rewrite IntCounter and ModularCounter classes to include only the constructor methods:
+Let's rewrite **IntCounter** and **ModularCounter** classes to include only the constructor methods:
 
 ```powershell
 CreateClass "IntCounter" $null '[int] $value' @{
@@ -183,7 +183,7 @@ CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
 The IntCounter's generated constructor **init** accepts `[int] $value` parameter. 
 The class also includes a parameterless constructor **init0**.
 
-##### ModularCounter
+##### ModularCounter calls other constructors
 
 The ModularCounter's generated constructor **init** which accepts the parameters `[int] $value` and `[int] $modulus` is overridden by the custom **init** constructor.
 The custom init constructor calls the generated init constructor:
@@ -196,6 +196,32 @@ The class also includes a parameterless constructor **init0** which calls the cu
 
 ```powershell
 $this.ModularCounter_init(0, $modulus)
+```
+
+#### Example 3
+
+The following classes are a part of an example which illustrates the chain of responsibility design pattern.
+For simplicity we have excluded non-constructor methods.
+
+```powershell
+CreateClass "HelpHandler" $null '[PSCustomObject] $successor, [string] $topic'
+
+CreateClass "Widget" -extends "HelpHandler" '[PSCustomObject] $parent' @{
+
+    init = {
+        param([PSCustomObject] $parent, [string] $topic)
+
+        # Widget's parent is HelpHandler's successor
+        $this.HelpHandler_init($parent, $topic)
+        $this.parent = $parent
+    }
+}
+```
+
+The Widget's init constructor calls the generated constructor of the HelpHandler **superclass**:
+
+```powershell
+$this.HelpHandler_init($parent, $topic)
 ```
 
 ### Object creation
