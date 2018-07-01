@@ -16,7 +16,7 @@ PSClasses also contain an uncommon feature: implicit **generation** of the const
 
 The project includes a simple **template engine** used in implementation of some features.
 
-The file **ClassGenerator_Test.ps1** contains numerous examples in form of **Pester** tests.
+The file *ClassGenerator_Test.ps1* contains numerous **examples** in form of **Pester** tests.
 
 ## Usage
 
