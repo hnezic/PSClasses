@@ -2,9 +2,9 @@
 
 ## Overview
 
-The PSClasses project provides classes with inheritance to PowerShell versions earlier than 5.0.
+The PSClasses project provides classes with inheritance to **PowerShell** versions earlier than 5.0.
 
-PSClasses include important features of object-oriented languages, like following:
+PSClasses include important **features** of object-oriented languages, like following:
 - class inheritance
 - overriding methods
 - ability to call overridden superclass methods
@@ -12,7 +12,11 @@ PSClasses include important features of object-oriented languages, like followin
 - ability to call other constructors of the same class
 - ability to call superclass constructors
 
-PSClasses also contain an uncommon feature: implicit generation of the constructor which accepts arguments corresponding to all instance variables. This feature resembles *case classes* in Scala or *data classes* in Kotlin.
+PSClasses also contain an uncommon feature: implicit **generation** of the constructor which accepts arguments corresponding to all instance variables. This feature resembles *case classes* in Scala or *data classes* in Kotlin.
+
+The project includes a simple **template engine** used in implementation of some features.
+
+The file **ClassGenerator_Test.ps1** contains numerous examples in form of **Pester** tests.
 
 ## Usage
 
