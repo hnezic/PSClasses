@@ -120,15 +120,15 @@ When a custom constructor calls other constructors it must use one of following 
 - The generated constructor can be overridden by a custom constructor.
 - If overridden, the generated constructor is still available to be called from other constructors as a method with following name: **`<className>_gen_init`**.
 
-#### Example
+#### Example 1
 
 Let's look at the example above which creates **Person** class. 
-The methods don't include custom constructors, but the generated constructor **init** is available right after class creation. Its arguments correspond to instance variables:
+The Person's methods don't include custom constructors. The generated constructor **init** is available after class creation. Its arguments correspond to instance variables:
 - $name
 - $age
 - $male
 
-We can create new objects immediately using the **init** constructor:
+We can create new objects using the **init** constructor:
 
 ```powershell
 $person = New "Person" { $self.init("John Smith", 23, $true) }
@@ -138,6 +138,64 @@ $person = New "Person" { $self.init("John Smith", 23, $true) }
 name       age male
 ----       --- ----
 John Smith  23 True
+```
+
+#### Example 2
+
+Let's rewrite IntCounter and ModularCounter classes to include only the constructor methods:
+
+```powershell
+CreateClass "IntCounter" $null '[int] $value' @{
+    
+    init0 = {
+        $this.value = 0
+    }
+}
+
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+
+    # Same as generated constructor, but with argument checks
+    init = {
+        param([int] $value, [int] $modulus)
+
+        # Call generated constructor
+        $this.ModularCounter_gen_init($value, $modulus)
+
+        If ($modulus -lt 1) {
+            throw "ModularCounter: modulus bad"
+        }
+        If ($value -lt 0 -or $value -gt $modulus) {
+            throw "ModularCounter: value bad"
+        } 
+    }
+
+    # A simplified constructor
+    init0 = {
+        param([int] $modulus)
+
+        $this.ModularCounter_init(0, $modulus)
+    }
+}
+```
+
+##### IntCounter
+
+The IntCounter's generated constructor **init** accepts `[int] $value` parameter. 
+The class also includes a parameterless constructor **init0**.
+
+##### ModularCounter
+
+The ModularCounter's generated constructor **init** which accepts the parameters `[int] $value` and `[int] $modulus` is overridden by the custom **init** constructor.
+The custom init constructor calls the generated init constructor:
+
+```powershell
+$this.ModularCounter_gen_init($value, $modulus)
+```
+
+The class also includes a parameterless constructor **init0** which calls the custom init constructor: 
+
+```powershell
+$this.ModularCounter_init(0, $modulus)
 ```
 
 ### Object creation
