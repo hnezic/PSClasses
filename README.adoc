@@ -1,1 +1,527 @@
-/Users/hrvoje/Documents/GitHub/hnezic.github.io/index.adoc
+= PSClasses
+Hrvoje Nezic
+:source-highlighter: prettify
+:icons: font
+:toc: left
+:toclevels: 4
+:nofooter:
+:psClasses: https://github.com/hnezic/PSClasses[PSClasses]
+:psClassesTests: https://github.com/hnezic/PSClasses/blob/master/ClassGenerator_Test.ps1[ClassGenerator_Test.ps1]
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+== Overview
+
+The {psClasses} project provides classes with inheritance to PowerShell
+versions earlier than 5.0.
+
+PSClasses include important *features* of object-oriented languages,
+like following:
+
+[cols="21h,79a",options="header",width=96]
+|===
+^| Feature ^| Example
+^.^|class inheritance
+
+| [source,powershell]
+----
+CreateClass "IntCounter" $null '[int] $value' @{ .. }
+
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+    ..
+}
+----
+
+^.^|overriding methods
+
+| [source,powershell]
+----
+CreateClass "IntCounter" $null '[int] $value' @{
+    increment = { .. }
+}
+
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+    increment = { .. }
+}
+----
+
+^.^|calling overridden superclass methods
+
+| [source,powershell]
+----
+CreateClass "IntCounter" $null '[int] $value' @{ increment = { .. } }
+
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+    increment = {
+        $this.IntCounter_increment()
+        ..
+    }
+}
+----
+
+^.^|multiple constructors
+
+| [source,powershell]
+----
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+    init = { param([int] $value, [int] $modulus) .. }
+
+    init0 = { param([int] $modulus) .. }
+}
+
+$modCounter = New "ModularCounter" { $self.init(6, 10) }
+$modCounter2 = New "ModularCounter" { $self.init0(20) }
+----
+
+^.^|calling other constructors of same class
+
+| [source,powershell]
+----
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+    init = {
+        param([int] $value, [int] $modulus)
+        ..
+    }
+
+    init0 = {
+        param([int] $modulus)
+        $this.ModularCounter_init(0, $modulus)
+    }
+}
+----
+
+^.^|calling superclass constructors
+
+| [source,powershell]
+----
+CreateClass "IntCounter" $null '[int] $value' @{ .. }
+
+CreateClass "BoundedCounter" -extends "IntCounter" '[int] $bound' @{
+    init = {
+        param([int] $value, [int] $bound)
+
+        # Call generated constructor "init" of superclass
+        $this.IntCounter_init($value)
+        ..
+    }
+}
+----
+
+|===
+
+The library also contains an uncommon feature: automatic 
+*generation* of the *constructor* which accepts arguments corresponding 
+to all instance variables. This feature resembles _case classes_ 
+in Scala or _data classes_ in Kotlin:
+
+[cols="21h,79a",width=96]
+|===
+^.^|generated constructor
+| [source,powershell]
+----
+CreateClass "Config" $null '$drive, $certSubject, $certAccount'
+
+# Constructor 'init' is automatically generated
+
+$config = New "Config" { $self.init("C:", "CN=jsmith", "jsmith") }
+----
+|===
+
+NOTE: The file {psClassesTests} contains numerous *examples* in form
+of *Pester* tests.
+
+NOTE: The project includes a simple *template engine* used in implementation
+of some features.
+
+== Class creation
+
+We can create a class by calling *CreateClass* function. The created class is
+represented by a *class object*. A *variable* holding the class object is
+automatically created. The *variable name* is formed like this: *`$<className>Class`*.
+
+The *CreateClass* function accepts following *arguments*:
+
+[cols=",,",options="header",frame=none,grid=none,width=75%]
+|===
+|Argument |Alias |Mandatory
+|class name |-name |yes
+|superclass |-extends |no
+|instance variables |-variables |no
+|methods |-methods |no
+|===
+
+=== Example: Person
+
+[source,powershell]
+----
+CreateClass "Person" $null '[string] $name, [int] $age' @{
+
+    getInfo = {
+        "Name: $($this.name), age: $($this.age)"
+    }
+}
+----
+
+This call creates the class object *$PersonClass*:
+
+[source,powershell]
+----
+> $PersonClass
+
+className         : Person
+super             :
+allVariablesStr   : [string] $name, [int] $age
+variables         : {name, age}
+...
+----
+
+== Instance variables
+
+Instance variables are specified as a *string* containing a
+comma-separated variable list along with optional *type specifiers*.
+The string is *parsed* and the variable names extracted.
+
+NOTE: The string containing instance variables is also used for *parameters*
+of the *generated constructor* named *init*.
+
+*Syntax* is the same as syntax of function parameters or script block
+parameters.
+
+=== Examples
+
+[source,powershell]
+----
+'[string] $name, [int] $age, [boolean] $male'
+----
+
+[source,powershell]
+----
+'[PSCustomObject] $successor, [string] $topic'
+----
+
+[source,powershell]
+----
+'$drive, $certSubject, $certAccount'
+----
+
+[source,powershell]
+----
+''
+----
+
+== Methods
+
+Methods are written as a *dictionary* of _(**name**, **script block**)_
+pairs. The methods dictionary can be an *unordered* hashtable or 
+*ordered* dictionary.
+
+=== Overriding methods
+
+A derived class can *override* superclass methods.
+
+NOTE: Each overridden method is available in following form:
+*`<className>_<methodName>`*.
+
+=== Example: counters
+
+[source,powershell]
+----
+CreateClass "IntCounter" $null '[int] $value' @{
+
+    increment = {
+        $this.value += 1
+    }
+
+    reset = {
+        $this.value = 0
+    }
+}
+
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+
+    # Override superclass method
+    increment = {
+        If ($this.value -eq $this.modulus - 1) {
+            # Call inherited method
+            $this.reset()
+        } Else {
+            # Call superclass version
+            $this.IntCounter_increment()
+        }
+    }
+}
+----
+
+The ModularCounter class overrides *increment* method. The ModularCounter's
+*increment* method calls the superclass version:
+
+[source,powershell]
+----
+$this.IntCounter_increment()
+----
+
+== Constructors
+
+Constructors are special *methods* whose names start with *init*.
+A class can contain *multiple* constructors.
+Each constructor can call:
+
+* any other constructor of the *same class*, including the *generated*
+constructor
+* any *superclass* constructor
+
+[NOTE]
+====
+When a custom constructor calls other constructors it must use one of
+following forms:
+
+* *`<className>_<constructorName>`* (for calling other custom
+constructors)
+* *`<className>_gen_init`* (for calling the generated constructor)
+====
+
+=== Generated constructor
+
+The constructor named *init* is generated automatically.
+It accepts arguments corresponding to all instance variables
+(including instance variables declared in superclasses)
+and just copies the arguments into instance variables.
+
+[NOTE]
+====
+The generated constructor can be *overridden* by a custom *init* 
+constructor.
+
+If overridden, the generated constructor is still available to be
+called from other constructors as a method with following name:
+*`<className>_gen_init`*.
+====
+
+==== Example: Person
+
+Let's look again at the above example which creates *Person* class:
+
+[source,powershell]
+----
+CreateClass "Person" $null '[string] $name, [int] $age' @{
+
+    # Constructor 'init' is automatically generated
+
+    getInfo = {
+        "Name: $($this.name), age: $($this.age)"
+    }
+}
+----
+
+The Person's methods don't include custom constructors. The generated
+constructor *init* is available after class creation. Its *arguments*
+correspond to instance variables:
+
+* $name
+* $age
+
+We can immediately create new objects using the generated *init* constructor:
+
+[source,powershell]
+----
+$person = New "Person" { $self.init("John Smith", 23) }
+
+> $person
+
+name       age
+----       ---
+John Smith  23
+----
+
+=== Calling other constructors
+
+Let's rewrite *IntCounter* and *ModularCounter* classes to include only
+the constructor methods:
+
+[source,powershell]
+----
+CreateClass "IntCounter" $null '[int] $value' @{
+
+    init0 = {
+        $this.value = 0
+    }
+}
+----
+
+The IntCounter's generated constructor *init* accepts `[int] $value`
+parameter. The class also includes a parameterless constructor *init0*.
+
+[source,powershell]
+----
+CreateClass "ModularCounter" -extends "IntCounter" '[int] $modulus' @{
+
+    # Same as generated constructor, but with argument checks
+    init = {
+        param([int] $value, [int] $modulus)
+
+        # Call generated constructor
+        $this.ModularCounter_gen_init($value, $modulus)
+
+        If ($modulus -lt 1) {
+            throw "ModularCounter: modulus bad"
+        }
+        If ($value -lt 0 -or $value -gt $modulus) {
+            throw "ModularCounter: value bad"
+        }
+    }
+
+    # A simplified constructor
+    init0 = {
+        param([int] $modulus)
+
+        # Call another constructor 
+        $this.ModularCounter_init(0, $modulus)
+    }
+}
+----
+
+The ModularCounter's generated constructor *init* which accepts the
+parameters `[int] $value` and `[int] $modulus` is overridden by the
+custom *init* constructor. The custom init constructor calls the
+generated init constructor:
+
+[source,powershell]
+----
+$this.ModularCounter_gen_init($value, $modulus)
+----
+
+The class also includes a parameterless constructor *init0* which calls
+the custom init constructor:
+
+[source,powershell]
+----
+$this.ModularCounter_init(0, $modulus)
+----
+
+=== Calling superclass constructors
+
+The following classes are a part of an example which illustrates the
+*chain of responsibility* design pattern. For simplicity we have excluded
+non-constructor methods.
+
+[source,powershell]
+----
+CreateClass "HelpHandler" $null '[PSCustomObject] $successor, [string] $topic'
+
+CreateClass "Widget" -extends "HelpHandler" '[PSCustomObject] $parent' @{
+
+    init = {
+        param([PSCustomObject] $parent, [string] $topic)
+
+        # Widget's parent is HelpHandler's successor
+        $this.HelpHandler_init($parent, $topic)
+        $this.parent = $parent
+    }
+}
+----
+
+The Widget's init constructor calls the *generated constructor* of the
+HelpHandler *superclass*:
+
+[source,powershell]
+----
+$this.HelpHandler_init($parent, $topic)
+----
+
+== Object creation
+
+There are several ways to create new objects. The simplest way is to call 
+the function *New* (or alternatively *New_*). 
+Another way is to call the method *new* (or alternatively *new_*) 
+on the class object).
+
+Let's illustrate creation of objects on the following simple class:
+
+[source,powershell]
+----
+CreateClass "Point" $null '[double] $x, [double] $y' @{
+
+    translate = {
+        param([double] $x, [double] $y)
+
+        $this.x += $x
+        $this.y += $y
+    }
+
+    scale = {
+        param([double] $factor)
+
+        $this.x *= $factor
+        $this.y *= $factor
+    }
+}
+----
+
+=== New
+
+The function New accepts two arguments: a *class name*
+and a *script block* containing a **constructor call**, e.g.:
+
+[source,powershell]
+----
+$point = New "Point" { $self.init(10, 20) }
+----
+
+Here we supply a *parameterless script block*. When function *New* is
+called it will create *$self* object and then perform the call
+`$self.init(10, 20)` on the object.
+
+IMPORTANT: The function New *expects* the supplied script block to contain a
+constructor call on the object *$self*. If we use any other object it
+will not work.
+
+[WARNING]
+====
+The way of object creation with function *New* will *not work* correctly
+within *closures*. For example:
+
+[source,powershell]
+----
+$script = {
+    ...
+    # This will not work
+    $point = New "Point" { $self.init(-10, -50) }
+    ...
+}.GetNewClosure()
+----
+====
+
+=== New_
+
+The function New_ is similar to New but it expects a *script block* with a
+*single parameter* representing the object being created and
+initialized. The parameter name is irrelevant.
+
+For example:
+
+[source,powershell]
+----
+$point1 = New_ "Point" { param($self) $self.init(30, 50) }
+
+$point2 = New_ "Point" { param($_) $_.init(25, 35) }
+----
+
+NOTE: The way of object creation with function *New_* will *work* correctly
+within *closures*.
+
+=== Using class object methods
+
+Instead of calling functions *New* or *New_* we can create objects by
+applying methods *new* or *new_* to the class object:
+
+[source,powershell]
+----
+$point1 = $PointClass.new( { $self.init(10, 20) } )
+
+$point2 = $PointClass.new_( { param($_) $_.init(5, 8) } )
+----
