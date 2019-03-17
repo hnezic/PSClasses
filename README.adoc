@@ -2,11 +2,11 @@
 Hrvoje Nezic
 :source-highlighter: prettify
 :icons: font
+:nofooter:
+ifndef::env-github[]
 :toc: left
 :toclevels: 4
-:nofooter:
-:psClasses: https://github.com/hnezic/PSClasses[PSClasses]
-:psClassesTests: https://github.com/hnezic/PSClasses/blob/master/ClassGenerator_Test.ps1[ClassGenerator_Test.ps1]
+endif::[]
 ifdef::env-github[]
 :tip-caption: :bulb:
 :note-caption: :information_source:
@@ -14,6 +14,8 @@ ifdef::env-github[]
 :caution-caption: :fire:
 :warning-caption: :warning:
 endif::[]
+:psClasses: https://github.com/hnezic/PSClasses[PSClasses]
+:psClassesTests: https://github.com/hnezic/PSClasses/blob/master/ClassGenerator_Test.ps1[ClassGenerator_Test.ps1]
 
 == Overview
 
